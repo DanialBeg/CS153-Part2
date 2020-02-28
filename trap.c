@@ -56,6 +56,13 @@ trap(struct trapframe *tf)
     }
     lapiceoi();
     break;
+  case T_PGFLT:
+     if(rcr2() != STACKBASE + (PGSIZE * myproc()->pages) + PGSIZE)
+       break;
+     //myproc()->pages += 1;
+     allocuvm(myproc()->pgdir, myproc()->sz, myproc()->sz+PGSIZE);
+     myproc()->pages += 1;
+     break;
   case T_IRQ0 + IRQ_IDE:
     ideintr();
     lapiceoi();
