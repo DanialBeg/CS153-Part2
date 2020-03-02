@@ -340,7 +340,7 @@ copyuvm(struct proc* parent)
   }
 
 //Second Loop
-  for (int i = 0; i <= parent->pages; i++) {	
+  for (int i = 0; i < parent->pages; i++) {	
     //Checks if a PTE is found
     uint page = STACKBASE - ((PGSIZE-1)*(i+1));
     if ((pte = walkpgdir(parent->pgdir, (void *)page, 0)) == 0)

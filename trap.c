@@ -60,10 +60,12 @@ trap(struct trapframe *tf)
      uint num = rcr2();
      struct proc* p = myproc();
      if(allocuvm(p->pgdir, PGROUNDDOWN(num), num) == 0){
+	cprintf("case T_PGFLT from trap.c: allocuvm failed. Number of current allocated pages: %d\n", p->pages);
 	exit();
      }
      else{
 	p->pages += 1;
+        cprintf("case T_PGFLT from trap.c: allocuvm succeeded. Number of pages allocated: %d\n", p->pages);
      }
      break;
      //myproc()->pages += 1;
