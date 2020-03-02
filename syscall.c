@@ -31,18 +31,18 @@ fetchint(uint addr, int *ip)
 int
 fetchstr(uint addr, char **pp)
 {
-  char *s, *ep;
+  char *s;
   //struct proc *curproc = myproc();
 
   //if(addr >= STACKBASE)
   //  return -1;
   *pp = (char*)addr;
-  ep = (char*)STACKBASE;
-  for(s = *pp; s < ep; s++){
-    if(*s == 0)
-      return s - *pp;
+  //ep = (char*)STACKBASE;
+  s = *pp; 
+  while(*s != 0){
+    s++;
   }
-  return -1;
+  return (s - *pp) -1;
 }
 
 // Fetch the nth 32-bit system call argument.

@@ -56,13 +56,21 @@ trap(struct trapframe *tf)
     }
     lapiceoi();
     break;
-  case T_PGFLT:
-     if(PGROUNDDOWN(rcr2()) != (STACKBASE + (PGSIZE * myproc()->pages) - PGSIZE))
-       break;
-     //myproc()->pages += 1;
-     allocuvm(myproc()->pgdir, myproc()->sz, myproc()->sz+PGSIZE);
-     myproc()->pages += 1;
+  case T_PGFLT: {
+     uint num = rcr2();
+     struct proc* p = myproc();
+     if(allocuvm(p->pgdir, PGROUNDDOWN(num), num) == 0){
+	exit();
+     }
+     else{
+	p->pages += 1;
+     }
      break;
+     //myproc()->pages += 1;
+     //allocuvm(myproc()->pgdir, myproc()->sz, myproc()->sz+PGSIZE);
+     //myproc()->pages += 1;
+     //break;
+  }
   case T_IRQ0 + IRQ_IDE:
     ideintr();
     lapiceoi();
