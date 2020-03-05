@@ -230,7 +230,7 @@ allocuvm(pde_t *pgdir, uint oldsz, uint newsz)
     return oldsz;
 
   a = PGROUNDUP(oldsz);
-  for(; a < newsz; a += PGSIZE){
+  for(; a <= newsz; a += PGSIZE){
     mem = kalloc();
     if(mem == 0){
       cprintf("allocuvm out of memory\n");
@@ -313,7 +313,7 @@ clearpteu(pde_t *pgdir, char *uva)
 // Given a parent process's page table, create a copy
 // of it for a child.
 pde_t*
-copyuvm(pde_t *pgdir, uint sz)
+copyuvm(struct proc* parent)
 {
   pde_t *d;
   pte_t *pte;
@@ -322,11 +322,13 @@ copyuvm(pde_t *pgdir, uint sz)
 
   if((d = setupkvm()) == 0)
     return 0;
-  for(i = 0; i < sz; i += PGSIZE){
-    if((pte = walkpgdir(pgdir, (void *) i, 0)) == 0)
+ for(i = 0; i < parent->sz; i += PGSIZE){
+    if((pte = walkpgdir(parent->pgdir, (void *) i, 0)) == 0)
       panic("copyuvm: pte should exist");
-    if(!(*pte & PTE_P))
+    if(!(*pte & PTE_P)){
+      cprintf("%x", parent->sz);
       panic("copyuvm: page not present");
+    }
     pa = PTE_ADDR(*pte);
     flags = PTE_FLAGS(*pte);
     if((mem = kalloc()) == 0)
@@ -334,13 +336,43 @@ copyuvm(pde_t *pgdir, uint sz)
     memmove(mem, (char*)P2V(pa), PGSIZE);
     if(mappages(d, (void*)i, PGSIZE, V2P(mem), flags) < 0)
       goto bad;
+
   }
+
+//Second Loop
+  for (int i = 0; i < parent->pages; i++) {	
+    //Checks if a PTE is found
+    uint page = STACKBASE - ((PGSIZE-1)*(i+1));
+    if ((pte = walkpgdir(parent->pgdir, (void *)page, 0)) == 0)
+      panic("copyuvm: pte not found");
+    // Checks if PTE_P is found
+    if (!(*pte & PTE_P)){
+      cprintf("%x", page);
+      panic("copyuvm: pte_p not found");
+    }
+    pa = PTE_ADDR(*pte);
+    flags = PTE_FLAGS(*pte);
+    // kalloc() finding a page and checking
+    //mem = kalloc();
+    if ((mem =kalloc())  == 0) {
+      cprintf("copyuvm: kalloc() didn't find a page");
+      goto bad;
+    }
+    // mappages() 
+    memmove(mem, (void *)P2V(pa), PGSIZE);
+    if (mappages(d, (void *)page, PGSIZE, V2P(mem), flags) < 0) {
+      cprintf("copyuvm: mappages() doesn't map correctly");
+      goto bad;
+    }
+  }
+//This was at the end of the original function idk where it goes
   return d;
 
-bad:
+ bad:
   freevm(d);
   return 0;
 }
+
 
 //PAGEBREAK!
 // Map user virtual address to kernel address.
