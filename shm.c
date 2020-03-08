@@ -29,8 +29,37 @@ void shminit() {
 }
 
 int shm_open(int id, char **pointer) {
+int first_proc = 1;
+acquire(&(shm_table.lock)); //mutual exclusion
+ //CASE 1: Check the smh_table to see if the id that is trying to be opened already existed
+for(unsigned int i = 0; i < 64; i++){
+	if(shm_table.shm_pages[i].id == id){
+		mappages(curproc->pgdir, sz, PGSIZE, shm_table.shm_pages[i].frame, PTE_W|PTE_U);
+		shm_table.shm_pages[i].refcnt++;
+		*pointer = (char *)sz;
+		sz++;
+		first_proc = 0;
+	}
+}
+//END CASE1
 
-//you write this
+//CASE 2: If the id is not on the shm_table we will make our id the first to do so
+if(first_proc == 1){
+	for(unsigned int i = 0; i < 64; i++){
+		if(shm_table.shm_pages[i].id == 0){
+			shm_table.shm_pages[i].id = id;
+			//kmalloc a page and store it into shm_table frame
+			shm_table.shm_pages[i].refcnt = 1;
+			mappages(curproc->pgdir, sz, PGSIZE, shm_table.shm_pages[i].frame, PTE_W|PTE_U);
+			*pointer = (char *)sz;
+			sz++;
+			break;
+		}
+	}		
+}
+
+
+release(&(shm_table.lock)); // mutual exclusion ending
 
 
 
